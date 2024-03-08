@@ -137,7 +137,9 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         let runtime_data = json!({
             "tee-pubkey": tee_pubkey,
             "nonce": challenge.nonce,
+            // IBM-SE TODO "extra-params": challenge.extra_params,
         });
+        // IBM-SE TODO we want use challenge.extra_params in attester.get_evidence, so we can not hash runtime_data in generate_evidence(runtime_data)
         let runtime_data =
             serde_json::to_string(&runtime_data).context("serialize runtime data failed")?;
         let evidence = self.generate_evidence(runtime_data).await?;
@@ -183,6 +185,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         let mut hasher = Sha384::new();
         hasher.update(runtime_data);
 
+        // IBM-SE TODO, we don't want pass a hash sting but a json string here.
         let ehd = hasher.finalize().to_vec();
 
         let tee_evidence = self
@@ -308,7 +311,9 @@ mod test {
         policy.push("test/policy.rego");
 
         let image = GenericImage::new(
-            "ghcr.io/confidential-containers/staged-images/kbs",
+            //"ghcr.io/confidential-containers/staged-images/kbs",
+            // TODO, rollback it and use a kbs with se tee implemented
+            "ibmhuoqif/kbs",
             "latest",
         )
         .with_exposed_port(8085)

@@ -35,6 +35,8 @@ else ifeq ($(TEE_PLATFORM), snp)
   ATTESTER = snp-attester
 else ifeq ($(TEE_PLATFORM), az-snp-vtpm)
   ATTESTER = az-snp-vtpm-attester
+else ifeq ($(TEE_PLATFORM), se)
+  ATTESTER = se-attester
 else ifeq ($(TEE_PLATFORM), all)
   LIBC = gnu
   ATTESTER = all-attesters
