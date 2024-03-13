@@ -12,7 +12,6 @@ use log::{debug, warn};
 use resource_uri::ResourceUri;
 use serde::Deserialize;
 use serde_json::json;
-use sha2::{Digest, Sha384};
 
 use crate::{
     api::KbsClientCapabilities,
@@ -137,9 +136,8 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         let runtime_data = json!({
             "tee-pubkey": tee_pubkey,
             "nonce": challenge.nonce,
-            // IBM-SE TODO "extra-params": challenge.extra_params,
+            "extra-params": challenge.extra_params,
         });
-        // IBM-SE TODO we want use challenge.extra_params in attester.get_evidence, so we can not hash runtime_data in generate_evidence(runtime_data)
         let runtime_data =
             serde_json::to_string(&runtime_data).context("serialize runtime data failed")?;
         let evidence = self.generate_evidence(runtime_data).await?;
@@ -182,11 +180,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
     }
 
     async fn generate_evidence(&self, runtime_data: String) -> Result<String> {
-        let mut hasher = Sha384::new();
-        hasher.update(runtime_data);
-
-        // IBM-SE TODO, we don't want pass a hash sting but a json string here.
-        let ehd = hasher.finalize().to_vec();
+        let ehd = runtime_data.into_bytes();
 
         let tee_evidence = self
             .provider

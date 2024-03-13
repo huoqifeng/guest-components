@@ -8,9 +8,21 @@ use crate::se::seattest::FakeSeAttest;
 use crate::se::seattest::SeImplAttester;
 use anyhow::*;
 use base64::prelude::*;
+use kbs_types::TeePubKey;
 use serde::{Deserialize, Serialize};
+use serde_json;
 
 pub mod seattest;
+
+// TODO move this to lib?
+#[derive(Serialize, Deserialize, Debug)]
+struct RuntimeData {
+    #[serde(alias = "tee-pubkey")]
+    tee_pubkey: TeePubKey,
+    nonce: String,
+    #[serde(alias = "extra-params")]
+    extra_params: String,
+}
 
 pub fn detect_platform() -> bool {
     // TODO replace FakeSeAttest with real crate
@@ -28,14 +40,17 @@ pub struct SeAttester {}
 
 #[async_trait::async_trait]
 impl Attester for SeAttester {
-    async fn get_evidence(&self, _challenge: Vec<u8>) -> Result<String> {
+    async fn get_evidence(&self, runtime_data: Vec<u8>) -> Result<String> {
         // TODO replace FakeSeAttest with real crate
         let attester = FakeSeAttest::default();
 
-        // TODO, append attesttaion request in KBS payload
-        // We want get challenge.extra_params from the input challenge, hashed string is not good.
-        let attestation_request_bin = Vec::new();
-        let userdata = Vec::new();
+        let data: RuntimeData = serde_json::from_str(
+            std::str::from_utf8(&runtime_data[..]).expect("Found invalid UTF-8"),
+        )?;
+
+        let attestation_request_bin = data.extra_params.into_bytes();
+
+        let userdata = "userdata".as_bytes().to_vec();
         let evidence = attester.perform(attestation_request_bin, userdata).await?;
 
         Ok(BASE64_STANDARD.encode(evidence))
