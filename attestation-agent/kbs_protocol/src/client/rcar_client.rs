@@ -147,6 +147,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         let attest = Attestation {
             tee_pubkey,
             tee_evidence: evidence,
+            extra_params: challenge.extra_params,
         };
 
         debug!("send attest request.");

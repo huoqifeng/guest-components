@@ -18,7 +18,7 @@ pub trait SeImplAttester {
 #[async_trait::async_trait]
 impl SeImplAttester for FakeSeAttest {
     fn is_se_guest(&self) -> bool {
-        true
+        false
     }
 
     async fn perform(&self, _request: Vec<u8>, _userdata: Vec<u8>) -> Result<Vec<u8>> {
