@@ -283,7 +283,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sev 1.2.1",
- "sha2 0.10.8",
  "strum",
  "tdx-attest-rs",
  "tempfile",
@@ -2820,7 +2819,7 @@ dependencies = [
 [[package]]
 name = "kbs-types"
 version = "0.5.3"
-source = "git+https://github.com/huoqifeng/kbs-types.git?branch=s390x-se#271ef4bac54035fb25fa44b24e5bbca844cd057c"
+source = "git+https://github.com/virtee/kbs-types.git?rev=e28c20c761378b1e8f5b210c839e3c454f2ec3fb#e28c20c761378b1e8f5b210c839e3c454f2ec3fb"
 dependencies = [
  "serde",
  "serde_json",

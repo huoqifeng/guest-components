@@ -12,6 +12,7 @@ use log::{debug, warn};
 use resource_uri::ResourceUri;
 use serde::Deserialize;
 use serde_json::json;
+use sha2::{Digest, Sha384};
 
 use crate::{
     api::KbsClientCapabilities,
@@ -136,18 +137,18 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         let runtime_data = json!({
             "tee-pubkey": tee_pubkey,
             "nonce": challenge.nonce,
-            "extra-params": challenge.extra_params,
         });
         let runtime_data =
             serde_json::to_string(&runtime_data).context("serialize runtime data failed")?;
-        let evidence = self.generate_evidence(runtime_data).await?;
+        let evidence = self
+            .generate_evidence(runtime_data, challenge.extra_params)
+            .await?;
         debug!("get evidence with challenge: {evidence}");
 
         let attest_endpoint = format!("{}/{KBS_PREFIX}/attest", self.kbs_host_url);
         let attest = Attestation {
             tee_pubkey,
             tee_evidence: evidence,
-            extra_params: challenge.extra_params,
         };
 
         debug!("send attest request.");
@@ -180,8 +181,19 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         Ok(())
     }
 
-    async fn generate_evidence(&self, runtime_data: String) -> Result<String> {
-        let ehd = runtime_data.into_bytes();
+    async fn generate_evidence(
+        &self,
+        runtime_data: String,
+        challenge_extra_params: String,
+    ) -> Result<String> {
+        let mut hasher = Sha384::new();
+        hasher.update(runtime_data);
+
+        let mut ehd = hasher.finalize().to_vec();
+        // IBM SE uses challenge_extra_params as runtime_data to pass attestation_request
+        if challenge_extra_params.chars().count() > 0 {
+            ehd = challenge_extra_params.into_bytes();
+        }
 
         let tee_evidence = self
             .provider

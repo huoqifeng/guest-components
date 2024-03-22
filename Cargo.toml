@@ -39,7 +39,7 @@ env_logger = "0.10.0"
 hex = "0.4.3"
 hmac = "0.12.1"
 jwt-simple = "0.11"
-kbs-types = { git = "https://github.com/huoqifeng/kbs-types.git", branch = "s390x-se" }
+kbs-types = { git = "https://github.com/virtee/kbs-types.git", rev = "e28c20c761378b1e8f5b210c839e3c454f2ec3fb" }
 lazy_static = "1.4.0"
 log = "0.4.14"
 openssl = "0.10"
