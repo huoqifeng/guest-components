@@ -2818,8 +2818,9 @@ dependencies = [
 
 [[package]]
 name = "kbs-types"
-version = "0.5.3"
-source = "git+https://github.com/virtee/kbs-types.git?rev=e28c20c761378b1e8f5b210c839e3c454f2ec3fb#e28c20c761378b1e8f5b210c839e3c454f2ec3fb"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "febd73b2b1df274ea454d81ddf76f596af9754410b7ed6f988f2e1782a175da3"
 dependencies = [
  "serde",
  "serde_json",
