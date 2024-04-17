@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use anyhow::{bail, Context};
 use async_trait::async_trait;
-use kbs_types::{Attestation, Challenge, ErrorInformation, Request, Response};
+use kbs_types::{Attestation, Challenge, ErrorInformation, Request, Response, Tee};
 use log::{debug, warn};
 use resource_uri::ResourceUri;
 use serde::Deserialize;
@@ -141,7 +141,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         let runtime_data =
             serde_json::to_string(&runtime_data).context("serialize runtime data failed")?;
         let evidence = self
-            .generate_evidence(runtime_data, challenge.extra_params)
+            .generate_evidence(tee, runtime_data, challenge.extra_params)
             .await?;
         debug!("get evidence with challenge: {evidence}");
 
@@ -183,6 +183,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
 
     async fn generate_evidence(
         &self,
+        tee: Tee,
         runtime_data: String,
         challenge_extra_params: String,
     ) -> Result<String> {
@@ -191,7 +192,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
 
         let mut ehd = hasher.finalize().to_vec();
         // IBM SE uses challenge_extra_params as runtime_data to pass attestation_request
-        if challenge_extra_params.chars().count() > 0 {
+        if tee == Tee::Se {
             ehd = challenge_extra_params.into_bytes();
         }
 
