@@ -5,6 +5,7 @@
 
 use ::ttrpc::asynchronous::Server;
 use anyhow::*;
+use attestation_agent::AttestationAgent;
 use clap::{arg, command, Parser};
 use const_format::concatcp;
 use log::{debug, info};
@@ -22,8 +23,10 @@ const DEFAULT_ATTESTATION_SOCKET_ADDR: &str = concatcp!(
     "attestation-agent.sock"
 );
 
+const VERSION: &str = include_str!(concat!(env!("OUT_DIR"), "/version"));
+
 #[derive(Debug, Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version = Some(VERSION))]
 struct Cli {
     /// Attestation ttRPC Unix socket addr.
     ///
@@ -33,10 +36,18 @@ struct Cli {
     /// `--attestation_sock unix:///tmp/attestation`
     #[arg(default_value_t = DEFAULT_ATTESTATION_SOCKET_ADDR.to_string(), short, long = "attestation_sock")]
     attestation_sock: String,
+
+    /// Configuration file for Attestation Agent
+    ///
+    /// Example:
+    /// `--config /etc/attestation-agent.conf`
+    #[arg(short, long)]
+    config_file: Option<String>,
 }
 
 #[tokio::main]
 pub async fn main() -> Result<()> {
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     let cli = Cli::parse();
 
     if !Path::new(DEFAULT_UNIX_SOCKET_DIR).exists() {
@@ -46,7 +57,8 @@ pub async fn main() -> Result<()> {
     clean_previous_sock_file(&cli.attestation_sock)
         .context("clean previous attestation socket file")?;
 
-    let att = server::start_ttrpc_service()?;
+    let aa = AttestationAgent::new(cli.config_file.as_deref()).context("start AA")?;
+    let att = server::start_ttrpc_service(aa)?;
 
     let mut atts = Server::new()
         .bind(&cli.attestation_sock)

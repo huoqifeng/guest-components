@@ -64,4 +64,30 @@ CDH will be launched by a configuration file by
 confidential-data-hub -c <path-to-config>
 ```
 
-Please see the [example config file](./example.config.toml) for more details.
+Please see the example config file in [toml](./example.config.toml) or [json](./example.config.json) for more details.
+
+However, if a file isn't passed with **-c** then it will search for configurations on the
+following locations (in order):
+
+* **/etc/confidential-data-hub.conf**
+* **AA_KBC_PARAMS** environment variable
+* **agent.aa_kbc_params** parameter from the Kernel command-line (`/proc/cmdline`)
+
+There is a special case which is when running from [peer pods](https://github.com/confidential-containers/cloud-api-adaptor). It
+will try to read from the kata-agent file (**/etc/agent-config.toml** or **KATA_AGENT_CONFIG_PATH** environment variable) prior
+to looking for `aa_kbc_params`.
+
+Finally on the abscence of a configuration, CDH will be configured with the `offline_fs_kbc` Key Broker Client (KBC).
+### Client Tool
+
+A client tool to interact with CDH is provided. run the following to build
+```shell
+git clone https://github.com/confidential-containers/guest-components
+cd guest-components/confidential-data-hub/hub
+cargo build --bin cdh-tool --features bin
+```
+
+Install
+```shell
+install -D -m0755 ../../target/x86_64-unknown-linux-gnu/release/cdh-tool /usr/local/bin/cdh-tool
+```

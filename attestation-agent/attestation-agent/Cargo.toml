@@ -19,7 +19,9 @@ async-trait.workspace = true
 attester = { path = "../attester", default-features = false }
 base64.workspace = true
 clap = { workspace = true, features = ["derive"], optional = true }
+config.workspace = true
 const_format = { workspace = true, optional = true }
+env_logger = { workspace = true, optional = true }
 kbs_protocol = { path = "../kbs_protocol", default-features = false, optional = true }
 log.workspace = true
 prost = { workspace = true, optional = true }
@@ -36,6 +38,7 @@ tonic = { workspace = true, optional = true }
 ttrpc = { workspace = true, features = ["async"], optional = true }
 
 [dev-dependencies]
+rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [build-dependencies]
@@ -54,12 +57,12 @@ kbs = ["kbs_protocol/background_check", "token"]
 # CoCoAS Attestation Token
 coco_as = ["reqwest", "token"]
 
-all-attesters = ["kbs_protocol?/all-attesters", "attester/all-attesters"]
-tdx-attester = ["kbs_protocol/tdx-attester", "attester/tdx-attester"]
-sgx-attester = ["kbs_protocol/sgx-attester", "attester/sgx-attester"]
-az-snp-vtpm-attester = ["kbs_protocol/az-snp-vtpm-attester", "attester/az-snp-vtpm-attester"]
-az-tdx-vtpm-attester = ["kbs_protocol/az-tdx-vtpm-attester", "attester/az-tdx-vtpm-attester"]
-snp-attester = ["kbs_protocol/snp-attester", "attester/snp-attester"]
+all-attesters = ["tdx-attester", "sgx-attester", "az-snp-vtpm-attester", "az-tdx-vtpm-attester", "snp-attester"]
+tdx-attester = ["kbs_protocol?/tdx-attester", "attester/tdx-attester"]
+sgx-attester = ["kbs_protocol?/sgx-attester", "attester/sgx-attester"]
+az-snp-vtpm-attester = ["kbs_protocol?/az-snp-vtpm-attester", "attester/az-snp-vtpm-attester"]
+az-tdx-vtpm-attester = ["kbs_protocol?/az-tdx-vtpm-attester", "attester/az-tdx-vtpm-attester"]
+snp-attester = ["kbs_protocol?/snp-attester", "attester/snp-attester"]
 se-attester = ["kbs_protocol/se-attester", "attester/se-attester"]
 
 # Either `rust-crypto` or `openssl` should be enabled to work as underlying crypto module
@@ -67,6 +70,6 @@ rust-crypto = ["kbs_protocol?/rust-crypto"]
 openssl = ["kbs_protocol?/openssl"]
 
 # Binary RPC type
-bin = ["clap", "tokio/rt-multi-thread"]
+bin = ["clap", "env_logger", "tokio/rt-multi-thread"]
 grpc = ["prost", "tonic", "tonic-build", "tokio/signal"]
 ttrpc = ["const_format", "dep:ttrpc", "ttrpc-codegen", "protobuf", "tokio/signal"]

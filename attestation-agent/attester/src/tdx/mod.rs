@@ -12,6 +12,8 @@ use base64::Engine;
 use log::debug;
 use scroll::Pread;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha384};
+use std::mem;
 use std::path::Path;
 use tdx_attest_rs::tdx_report_t;
 
@@ -19,13 +21,16 @@ mod report;
 
 const TDX_REPORT_DATA_SIZE: usize = 64;
 const CCEL_PATH: &str = "/sys/firmware/acpi/tables/data/CCEL";
+const RUNTIME_MEASUREMENT_RTMR_INDEX: u64 = 2;
 
 pub fn detect_platform() -> bool {
     TsmReportPath::new(TsmReportProvider::Tdx).is_ok() || tdx_getquote_ioctl_is_available()
 }
 
 fn tdx_getquote_ioctl_is_available() -> bool {
-    Path::new("/dev/tdx-attest").exists() || Path::new("/dev/tdx-guest").exists()
+    Path::new("/dev/tdx-attest").exists()
+        || Path::new("/dev/tdx-guest").exists()
+        || Path::new("/dev/tdx_guest").exists()
 }
 
 fn get_quote_ioctl(report_data: &Vec<u8>) -> Result<Vec<u8>> {
@@ -42,6 +47,16 @@ fn get_quote_ioctl(report_data: &Vec<u8>) -> Result<Vec<u8>> {
             error_code
         )),
     }
+}
+
+// Return true if the TD environment can extend runtime measurement,
+// else false.
+fn runtime_measurement_extend_available() -> bool {
+    if Path::new("/dev/tdx_guest").exists() || Path::new("/sys/kernel/config/tsm/report").exists() {
+        return false;
+    }
+
+    true
 }
 
 #[derive(Serialize, Deserialize)]
@@ -89,8 +104,7 @@ impl Attester for TdxAttester {
 
         let evidence = TdxEvidence { cc_eventlog, quote };
 
-        serde_json::to_string(&evidence)
-            .map_err(|e| anyhow!("Serialize TDX evidence failed: {:?}", e))
+        serde_json::to_string(&evidence).context("Serialize TDX evidence failed")
     }
 
     async fn extend_runtime_measurement(
@@ -98,8 +112,22 @@ impl Attester for TdxAttester {
         events: Vec<Vec<u8>>,
         _register_index: Option<u64>,
     ) -> Result<()> {
+        if !runtime_measurement_extend_available() {
+            bail!("TDX Attester: Cannot extend runtime measurement on this system");
+        }
+
         for event in events {
-            match tdx_attest_rs::tdx_att_extend(&event) {
+            let mut event_buffer = [0u8; mem::size_of::<tdx_attest_rs::tdx_rtmr_event_t>()];
+            let mut hasher = Sha384::new();
+            hasher.update(&event);
+            let hash = hasher.finalize().to_vec();
+            let rtmr_event = unsafe {
+                &mut *(event_buffer.as_mut_ptr() as *mut tdx_attest_rs::tdx_rtmr_event_t)
+            };
+            rtmr_event.version = 1;
+            rtmr_event.rtmr_index = RUNTIME_MEASUREMENT_RTMR_INDEX;
+            rtmr_event.extend_data.copy_from_slice(&hash);
+            match tdx_attest_rs::tdx_att_extend(&event_buffer) {
                 tdx_attest_rs::tdx_attest_error_t::TDX_ATTEST_SUCCESS => {
                     log::debug!("TDX extend runtime measurement succeeded.")
                 }
@@ -132,7 +160,7 @@ impl Attester for TdxAttester {
         let td_report = report
             .d
             .pread::<report::TdReport>(0)
-            .map_err(|e| anyhow!("Parse TD report failed: {:?}", e))?;
+            .context("Parse TD report failed")?;
 
         let init_data: [u8; 48] = pad(init_data);
         if init_data != td_report.tdinfo.mrconfigid {

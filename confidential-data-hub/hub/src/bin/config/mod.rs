@@ -7,7 +7,7 @@ use std::env;
 
 use anyhow::*;
 use config::{Config, File};
-use log::warn;
+use log::{debug, warn};
 use serde::Deserialize;
 use tokio::fs;
 
@@ -42,6 +42,7 @@ pub struct Credential {
 pub struct CdhConfig {
     pub kbc: KbsConfig,
 
+    #[serde(default)]
     pub credentials: Vec<Credential>,
 
     pub socket: String,
@@ -76,7 +77,7 @@ impl CdhConfig {
             .add_source(File::with_name(config_path))
             .build()?;
 
-        let res = c.try_deserialize().context("invalid config").unwrap();
+        let res = c.try_deserialize().context("invalid config")?;
         Ok(res)
     }
 
@@ -120,13 +121,77 @@ impl CdhConfig {
 
 impl CdhConfig {
     pub fn set_configuration_envs(&self) {
-        // KBS configurations
-        env::set_var(
-            "AA_KBC_PARAMS",
-            format!("{}::{}", self.kbc.name, self.kbc.url),
-        );
+        if attestation_agent::config::aa_kbc_params::get_value().is_err() {
+            debug!("No aa_kbc_params provided in kernel cmdline, env and peerpod config.");
+            // KBS configurations
+            env::set_var(
+                "AA_KBC_PARAMS",
+                format!("{}::{}", self.kbc.name, self.kbc.url),
+            );
+        }
+
         if let Some(kbs_cert) = &self.kbc.kbs_cert {
             env::set_var("KBS_CERT", kbs_cert);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+
+    use rstest::rstest;
+
+    use crate::CdhConfig;
+
+    #[rstest]
+    #[case(
+        r#"
+socket = "unix:///run/confidential-containers/cdh.sock"
+
+[kbc]
+name = "offline_fs_kbc"
+url = ""
+kbs_cert = ""
+    "#,
+        true
+    )]
+    #[case(
+        r#"
+socket = "unix:///run/confidential-containers/cdh.sock"
+
+[kbc]
+name = "offline_fs_kbc"
+url = ""
+kbs_cert = ""
+
+[[credentials]]
+    "#,
+        false
+    )]
+    #[case(
+        r#"
+socket = "unix:///run/confidential-containers/cdh.sock"
+
+[kbc]
+name = "offline_fs_kbc"
+url = ""
+kbs_cert = ""
+
+[[credentials]]
+resource_uri = "kbs:///default/1/1"
+path = "/run/confidential-containers/cdh/kms-credential/aliyun/config.toml"
+    "#,
+        true
+    )]
+    fn read_config(#[case] config: &str, #[case] successful: bool) {
+        let mut file = tempfile::Builder::new()
+            .append(true)
+            .suffix(".toml")
+            .tempfile()
+            .unwrap();
+        file.write_all(config.as_bytes()).unwrap();
+        let res = CdhConfig::from_file(file.path().to_str().unwrap());
+        assert_eq!(res.is_ok(), successful, "{res:?}");
     }
 }
