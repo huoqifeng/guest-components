@@ -10,13 +10,13 @@ use async_trait;
 pub struct FakeSeAttest {}
 
 #[async_trait::async_trait]
-pub trait SeImplAttester {
+pub trait IbmSeAttester {
     fn is_se_guest(&self) -> bool;
     async fn perform(&self, _request: Vec<u8>, _userdata: Vec<u8>) -> Result<Vec<u8>>;
 }
 
 #[async_trait::async_trait]
-impl SeImplAttester for FakeSeAttest {
+impl IbmSeAttester for FakeSeAttest {
     fn is_se_guest(&self) -> bool {
         false
     }

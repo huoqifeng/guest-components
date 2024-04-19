@@ -4,16 +4,16 @@
 //
 
 use super::Attester;
-use crate::se::seattest::FakeSeAttest;
-use crate::se::seattest::SeImplAttester;
+use crate::se::ibmse::FakeSeAttest;
+use crate::se::ibmse::IbmSeAttester;
 use anyhow::*;
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 
-pub mod seattest;
+pub mod ibmse;
 
 pub fn detect_platform() -> bool {
-    // TODO replace FakeSeAttest with real crate
+    // TODO replace FakeSeAttest with real IBM SE crate
     let attester = FakeSeAttest::default();
     attester.is_se_guest()
 }
@@ -29,7 +29,7 @@ pub struct SeAttester {}
 #[async_trait::async_trait]
 impl Attester for SeAttester {
     async fn get_evidence(&self, attestation_request: Vec<u8>) -> Result<String> {
-        // TODO replace FakeSeAttest with real crate
+        // TODO replace FakeSeAttest with real IBM SE crate
         let attester = FakeSeAttest::default();
         let userdata = "userdata".as_bytes().to_vec();
         let evidence = attester.perform(attestation_request, userdata).await?;
