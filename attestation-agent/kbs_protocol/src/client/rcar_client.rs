@@ -319,9 +319,7 @@ mod test {
         policy.push("test/policy.rego");
 
         let image = GenericImage::new(
-            //"ghcr.io/confidential-containers/staged-images/kbs",
-            // TODO, rollback it and use a kbs with se tee implemented
-            "ibmhuoqif/kbs",
+            "ghcr.io/confidential-containers/staged-images/kbs",
             "latest",
         )
         .with_exposed_port(8085)
