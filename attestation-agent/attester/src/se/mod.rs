@@ -4,23 +4,13 @@
 //
 
 use super::Attester;
-use crate::se::ibmse::FakeSeAttest;
-use crate::se::ibmse::IbmSeAttester;
 use anyhow::*;
-use base64::prelude::*;
-use serde::{Deserialize, Serialize};
+use log::debug;
 
 pub mod ibmse;
 
 pub fn detect_platform() -> bool {
-    // TODO replace FakeSeAttest with real IBM SE crate
-    let attester = FakeSeAttest::default();
-    attester.is_se_guest()
-}
-
-#[derive(Serialize, Deserialize)]
-struct SeEvidence {
-    quote: Vec<u8>,
+    ibmse::is_se_guest()
 }
 
 #[derive(Debug, Default)]
@@ -29,12 +19,12 @@ pub struct SeAttester {}
 #[async_trait::async_trait]
 impl Attester for SeAttester {
     async fn get_evidence(&self, attestation_request: Vec<u8>) -> Result<String> {
-        // TODO replace FakeSeAttest with real IBM SE crate
-        let attester = FakeSeAttest::default();
-        let userdata = "userdata".as_bytes().to_vec();
-        let evidence = attester.perform(attestation_request, userdata).await?;
-
-        Ok(BASE64_STANDARD.encode(evidence))
+        let userdata = ibmse::calc_userdata()?;
+        debug!("userdata json: {:#?}", &userdata.clone());
+        // attestation_request is serialized SeAttestationRequest String bytes
+        let evidence = ibmse::perform(&attestation_request, &userdata)?;
+        debug!("response json: {:#?}", evidence.clone());
+        serde_json::to_string(&evidence).context("Serialize SE evidence failed")
     }
 }
 

@@ -193,6 +193,7 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         let mut ehd = hasher.finalize().to_vec();
         // IBM SE uses challenge_extra_params as runtime_data to pass attestation_request
         if tee == Tee::Se {
+            // challenge_extra_params is serialized SeAttestationRequest String
             ehd = challenge_extra_params.into_bytes();
         }
 
