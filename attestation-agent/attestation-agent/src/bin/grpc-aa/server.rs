@@ -8,16 +8,15 @@ use attestation::attestation_agent_service_server::{
     AttestationAgentService, AttestationAgentServiceServer,
 };
 use attestation::{
-    ExtendRuntimeMeasurementRequest, ExtendRuntimeMeasurementResponse, GetEvidenceRequest,
-    GetEvidenceResponse, GetTokenRequest, GetTokenResponse,
+    CheckInitDataRequest, CheckInitDataResponse, ExtendRuntimeMeasurementRequest,
+    ExtendRuntimeMeasurementResponse, GetEvidenceRequest, GetEvidenceResponse, GetTokenRequest,
+    GetTokenResponse, UpdateConfigurationRequest, UpdateConfigurationResponse,
 };
 use attestation_agent::{AttestationAPIs, AttestationAgent};
 use log::{debug, error};
 use std::net::SocketAddr;
 use tokio::sync::Mutex;
 use tonic::{transport::Server, Request, Response, Status};
-
-use self::attestation::{CheckInitDataRequest, CheckInitDataResponse};
 
 mod attestation {
     tonic::include_proto!("attestation_agent");
@@ -39,17 +38,17 @@ impl AttestationAgentService for AA {
 
         let mut attestation_agent = self.inner.lock().await;
 
-        debug!("Call AA to get token ...");
+        debug!("AA (grpc): get token ...");
 
         let token = attestation_agent
             .get_token(&request.token_type)
             .await
             .map_err(|e| {
-                error!("Call AA to get token failed: {}", e);
-                Status::internal(format!("[ERROR:{}] AA get token failed: {}", AGENT_NAME, e))
+                error!("AA (grpc): get token failed:\n{e:?}");
+                Status::internal(format!("[ERROR:{AGENT_NAME}] AA get token failed"))
             })?;
 
-        debug!("Get token successfully!");
+        debug!("AA (grpc): Get token successfully!");
 
         let reply = GetTokenResponse { token };
 
@@ -64,20 +63,17 @@ impl AttestationAgentService for AA {
 
         let mut attestation_agent = self.inner.lock().await;
 
-        debug!("Call AA to get evidence ...");
+        debug!("AA (grpc): get evidence ...");
 
         let evidence = attestation_agent
             .get_evidence(&request.runtime_data)
             .await
             .map_err(|e| {
-                error!("Call AA to get evidence failed: {}", e);
-                Status::internal(format!(
-                    "[ERROR:{}] AA get evidence failed: {}",
-                    AGENT_NAME, e
-                ))
+                error!("AA (grpc): get evidence failed:\n{e:?}");
+                Status::internal(format!("[ERROR:{AGENT_NAME}] AA get evidence failed"))
             })?;
 
-        debug!("Get evidence successfully!");
+        debug!("AA (grpc): Get evidence successfully!");
 
         let reply = GetEvidenceResponse { evidence };
 
@@ -92,20 +88,19 @@ impl AttestationAgentService for AA {
 
         let mut attestation_agent = self.inner.lock().await;
 
-        debug!("Call AA to extend runtime measurement ...");
+        debug!("AA (grpc): extend runtime measurement ...");
 
         attestation_agent
             .extend_runtime_measurement(request.events, request.register_index)
             .await
             .map_err(|e| {
-                error!("Call AA to extend runtime measurement failed: {}", e);
+                error!("AA (grpc): extend runtime measurement failed:\n{e:?}");
                 Status::internal(format!(
-                    "[ERROR:{}] AA extend runtime measurement failed: {}",
-                    AGENT_NAME, e
+                    "[ERROR:{AGENT_NAME}] AA extend runtime measurement failed"
                 ))
             })?;
 
-        debug!("Extend runtime measurement successfully!");
+        debug!("AA (grpc): extend runtime measurement succeeded.");
 
         let reply = ExtendRuntimeMeasurementResponse {};
 
@@ -120,22 +115,45 @@ impl AttestationAgentService for AA {
 
         let mut attestation_agent = self.inner.lock().await;
 
-        debug!("Call AA to check init data ...");
+        debug!("AA (grpc): check init data ...");
 
         attestation_agent
             .check_init_data(&request.digest)
             .await
             .map_err(|e| {
-                error!("Call AA to check init data failed: {}", e);
+                error!("AA (grpc): check init data failed:\n{e:?}");
+                Status::internal(format!("[ERROR:{AGENT_NAME}] AA check init data failed"))
+            })?;
+
+        debug!("AA (grpc): Check init data successfully!");
+
+        let reply = CheckInitDataResponse {};
+
+        Result::Ok(Response::new(reply))
+    }
+
+    async fn update_configuration(
+        &self,
+        request: Request<UpdateConfigurationRequest>,
+    ) -> Result<Response<UpdateConfigurationResponse>, Status> {
+        let request = request.into_inner();
+
+        let mut attestation_agent = self.inner.lock().await;
+
+        debug!("AA (grpc): update configuration ...");
+
+        attestation_agent
+            .update_configuration(&request.config)
+            .map_err(|e| {
+                error!("AA (grpc): update configuration failed:\n{e:?}");
                 Status::internal(format!(
-                    "[ERROR:{}] AA check init data failed: {}",
-                    AGENT_NAME, e
+                    "[ERROR:{AGENT_NAME}] AA update configuration failed"
                 ))
             })?;
 
-        debug!("Check init data successfully!");
+        debug!("AA (grpc): update configuration successfully!");
 
-        let reply = CheckInitDataResponse {};
+        let reply = UpdateConfigurationResponse {};
 
         Result::Ok(Response::new(reply))
     }

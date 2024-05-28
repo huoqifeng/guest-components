@@ -8,13 +8,16 @@ pub mod error;
 
 use std::{collections::HashMap, os::unix::fs::PermissionsExt};
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use async_trait::async_trait;
-use base64::{engine::general_purpose::STANDARD, Engine};
-use log::debug;
-use secret::secret::Secret;
+use log::{debug, error};
+use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
-use tokio::{fs, io::AsyncWriteExt, process::Command};
+use tokio::{
+    fs,
+    io::{AsyncReadExt, AsyncWriteExt},
+    process::Command,
+};
 
 use error::{AliyunError, Result};
 
@@ -60,38 +63,31 @@ struct OssParameters {
 
 pub(crate) struct Oss;
 
-async fn unseal_secret(secret: Vec<u8>) -> anyhow::Result<Vec<u8>> {
-    // TODO: verify the jws signature using the key specified by `kid`
-    // in header. Here we directly get the JWS payload
-    let payload = secret
-        .split(|c| *c == b'.')
-        .nth(1)
-        .ok_or(anyhow!("illegal input sealed secret (not a JWS)"))?;
-
-    let secret_json = STANDARD
-        .decode(payload)
-        .context("illegal input sealed secret (JWS body is not standard base64 encoded)")?;
-
-    let secret: Secret = serde_json::from_slice(&secret_json)
-        .context("illegal input sealed secret format (json deseralization failed)")?;
-
-    let res = secret.unseal().await?;
-
-    Ok(res)
-}
-
 async fn get_plaintext_secret(secret: &str) -> anyhow::Result<String> {
     if secret.starts_with("sealed.") {
         debug!("detected sealed secret");
-        let tmp = secret
-            .strip_prefix("sealed.")
-            .ok_or(anyhow!("strip_prefix \"sealed.\" failed"))?;
-        let unsealed = unseal_secret(tmp.into()).await?;
+        let unsealed = secret::unseal_secret(secret.as_bytes()).await?;
 
         String::from_utf8(unsealed).context("convert to String failed")
     } else {
         Ok(secret.into())
     }
+}
+
+async fn create_random_dir() -> anyhow::Result<String> {
+    const NAME_LENGTH: usize = 10;
+
+    let name: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(NAME_LENGTH)
+        .map(char::from)
+        .collect();
+
+    let path_name = format!("/tmp/{name}");
+    fs::create_dir_all(&path_name)
+        .await
+        .context("create /tmp dir")?;
+    Ok(path_name)
 }
 
 impl Oss {
@@ -110,7 +106,7 @@ impl Oss {
         let plain_ak_id = get_plaintext_secret(&oss_parameter.ak_id).await?;
         let plain_ak_secret = get_plaintext_secret(&oss_parameter.ak_secret).await?;
 
-        // create temp directory to storage metadata for this mount operation
+        // create temp directory to store metadata for this mount operation
         let tempdir = tempfile::tempdir()?;
 
         // create ossfs passwd file
@@ -130,7 +126,8 @@ impl Oss {
                 .as_bytes(),
             )
             .await?;
-        ossfs_passwd.flush().await?;
+        ossfs_passwd.sync_all().await?;
+        drop(ossfs_passwd);
 
         // generate parameters for ossfs command
         let mut opts = oss_parameter
@@ -140,12 +137,11 @@ impl Oss {
             .collect();
 
         if oss_parameter.encrypted == "gocryptfs" {
-            let gocryptfs_dir = tempfile::tempdir()?;
+            let gocryptfs_dir = create_random_dir().await?;
 
-            let gocryptfs_dir_path = gocryptfs_dir.path().to_string_lossy().to_string();
             let mut parameters = vec![
                 format!("{}:{}", oss_parameter.bucket, oss_parameter.path),
-                gocryptfs_dir_path.clone(),
+                gocryptfs_dir.clone(),
                 format!("-ourl={}", oss_parameter.url),
                 format!("-opasswd_file={ossfs_passwd_path}"),
             ];
@@ -154,10 +150,21 @@ impl Oss {
             let mut oss = Command::new(OSSFS_BIN)
                 .args(parameters)
                 .spawn()
-                .map_err(|_| AliyunError::OssfsMountFailed)?;
+                .map_err(|e| {
+                    error!("oss cmd fork failed: {e}");
+                    AliyunError::OssfsMountFailed
+                })?;
             let oss_res = oss.wait().await?;
             if !oss_res.success() {
                 {
+                    let mut stderr = String::new();
+                    if let Some(mut err) = oss.stderr {
+                        err.read_to_string(&mut stderr).await?;
+                        error!("OSS mount failed with stderr: {stderr}");
+                    } else {
+                        error!("OSS mount failed");
+                    }
+
                     return Err(AliyunError::OssfsMountFailed);
                 }
             }
@@ -172,11 +179,12 @@ impl Oss {
             let mut gocryptfs_passwd = fs::File::create(&gocryptfs_passwd_path).await?;
 
             gocryptfs_passwd.write_all(plain_passwd.as_bytes()).await?;
-            gocryptfs_passwd.flush().await?;
+            gocryptfs_passwd.sync_all().await?;
+            drop(gocryptfs_passwd);
 
             // generate parameters for gocryptfs, and execute
             let parameters = vec![
-                gocryptfs_dir_path,
+                gocryptfs_dir,
                 mount_point.to_string(),
                 "-passfile".to_string(),
                 gocryptfs_passwd_path,
@@ -190,6 +198,14 @@ impl Oss {
             let gocryptfs_res = gocryptfs.wait().await?;
             if !gocryptfs_res.success() {
                 {
+                    let mut stderr = String::new();
+
+                    if let Some(mut err) = gocryptfs.stderr {
+                        err.read_to_string(&mut stderr).await?;
+                        error!("gocryptfs failed with stderr: {stderr}");
+                    } else {
+                        error!("gocryptfs failed");
+                    }
                     return Err(AliyunError::GocryptfsMountFailed);
                 }
             }
@@ -205,10 +221,20 @@ impl Oss {
             let mut oss = Command::new(OSSFS_BIN)
                 .args(parameters)
                 .spawn()
-                .map_err(|_| AliyunError::OssfsMountFailed)?;
+                .map_err(|e| {
+                    error!("oss cmd fork failed: {e}");
+                    AliyunError::OssfsMountFailed
+                })?;
             let oss_res = oss.wait().await?;
             if !oss_res.success() {
                 {
+                    let mut stderr = String::new();
+                    if let Some(mut err) = oss.stderr {
+                        err.read_to_string(&mut stderr).await?;
+                        error!("oss mount failed with stderr: {stderr}");
+                    } else {
+                        error!("oss mount failed");
+                    }
                     return Err(AliyunError::OssfsMountFailed);
                 }
             }

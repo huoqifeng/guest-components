@@ -31,6 +31,7 @@ pub trait ApiHandler: Send {
     }
 
     // Build json response.
+    #[allow(dead_code)]
     fn json_response(&self, json: String) -> Result<Response<Body>> {
         Ok(Response::builder()
             .status(StatusCode::OK)
@@ -64,6 +65,13 @@ pub trait ApiHandler: Send {
         Ok(Response::builder()
             .status(StatusCode::METHOD_NOT_ALLOWED)
             .body(Body::from("Method Not Allowed"))?)
+    }
+
+    // Build 500 Internal Server Error response.
+    fn internal_error(&self, body: String) -> Result<Response<Body>> {
+        Ok(Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(Body::from(body))?)
     }
 }
 

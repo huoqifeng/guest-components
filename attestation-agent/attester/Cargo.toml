@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
-az-snp-vtpm = { version = "0.5.2", default-features = false, features = ["attester"], optional = true }
-az-tdx-vtpm = { version = "0.5.2", default-features = false, features = ["attester"], optional = true }
+az-snp-vtpm = { version = "0.5.3", default-features = false, features = ["attester"], optional = true }
+az-tdx-vtpm = { version = "0.5.3", default-features = false, features = ["attester"], optional = true }
 base64.workspace = true
 kbs-types.workspace = true
 log.workspace = true
@@ -19,8 +19,7 @@ pv = { version = "0.10.0", package = "s390_pv" }
 scroll = { version = "0.12.0", default-features = false, features = ["derive", "std"], optional = true }
 serde.workspace = true
 serde_json.workspace = true
-serde_with.workspace = true
-sev = { version = "1.2.0", default-features = false, features = [
+sev = { version = "3.1.1", default-features = false, features = [
     "snp",
 ], optional = true }
 sha2.workspace = true

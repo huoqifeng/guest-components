@@ -256,9 +256,9 @@ dependencies = [
 
 [[package]]
 name = "async-compression"
-version = "0.4.6"
+version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a116f46a969224200a0a97f29cfd4c50e7534e4b4826bd23ea2c3c533039c82c"
+checksum = "9c90a406b4495d129f00461241616194cb8a032c8d1c53c657f0961d5f8e0498"
 dependencies = [
  "flate2",
  "futures-core",
@@ -303,6 +303,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.8",
  "strum",
+ "tempfile",
  "thiserror",
  "tokio",
  "toml 0.8.10",
@@ -333,7 +334,7 @@ dependencies = [
  "scroll",
  "serde",
  "serde_json",
- "sev 1.2.1",
+ "sev 3.1.1",
  "sha2 0.10.8",
  "strum",
  "tdx-attest-rs",
@@ -406,9 +407,9 @@ dependencies = [
 
 [[package]]
 name = "az-cvm-vtpm"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53f5fa6fe32f6409dca8202ddd267027ac1f1de4cd91b9e21d92062c14d63cae"
+checksum = "1e2d89967f683d16dafdaacb578a2841daff9f43c856c6a6dc9939cc11272712"
 dependencies = [
  "bincode",
  "jsonwebkey",
@@ -418,7 +419,7 @@ dependencies = [
  "serde",
  "serde-big-array",
  "serde_json",
- "sev 1.2.1",
+ "sev 3.1.1",
  "sha2 0.10.8",
  "thiserror",
  "tss-esapi",
@@ -427,24 +428,24 @@ dependencies = [
 
 [[package]]
 name = "az-snp-vtpm"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b394dfe2307a0ee74bf22a7ebbb2563a03739927ad44e216803300260426b5d"
+checksum = "d9da68a854978d9d32cc03ba6cd4a24b1f43fafad91eb7e15578cdf9a9cbdfe7"
 dependencies = [
  "az-cvm-vtpm",
  "bincode",
  "clap 4.2.7",
  "serde",
- "sev 1.2.1",
+ "sev 3.1.1",
  "thiserror",
  "ureq",
 ]
 
 [[package]]
 name = "az-tdx-vtpm"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "199c3d801575d0e6779aa66876ef88703324892f2fc0b1daf56c2ee09a51ec98"
+checksum = "8575eeaefa72d9591355597f5acf9b4ddee8cc19d8b03d947173ae8fcf1e8c2e"
 dependencies = [
  "az-cvm-vtpm",
  "base64-url",
@@ -1026,6 +1027,7 @@ dependencies = [
  "async-trait",
  "attestation-agent",
  "base64 0.21.7",
+ "cfg-if",
  "clap 4.2.7",
  "config",
  "env_logger 0.11.3",
@@ -1033,6 +1035,7 @@ dependencies = [
  "kms",
  "lazy_static",
  "log",
+ "prost 0.11.9",
  "protobuf 3.4.0",
  "rstest",
  "secret",
@@ -1042,6 +1045,8 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
+ "tonic",
+ "tonic-build",
  "ttrpc",
  "ttrpc-codegen",
 ]
@@ -1180,9 +1185,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.11"
+version = "0.5.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "176dc175b78f56c0f321911d9c8eb2b77a78a4860b9c19db83835fea1a46649b"
+checksum = "ab3db02a9c5b5121e1e42fbdb1aeb65f5e02624cc58c43f2884c6ccac0b82f95"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -2086,7 +2091,7 @@ dependencies = [
  "mio",
  "nix 0.24.3",
  "vm-memory",
- "vmm-sys-util 0.11.2",
+ "vmm-sys-util",
 ]
 
 [[package]]
@@ -2586,6 +2591,7 @@ dependencies = [
 name = "image"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "assert-json-diff",
  "base64 0.21.7",
  "crypto",
@@ -2639,7 +2645,7 @@ dependencies = [
  "sha2 0.10.8",
  "sigstore",
  "strum",
- "strum_macros",
+ "strum_macros 0.26.2",
  "tar",
  "tempfile",
  "test-utils",
@@ -3018,27 +3024,6 @@ dependencies = [
  "uuid",
  "yasna 0.5.2",
  "zeroize",
-]
-
-[[package]]
-name = "kvm-bindings"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "081fbd8164229a990fbf24a1f35d287740db110c2b5d42addf460165f1b0e032"
-dependencies = [
- "vmm-sys-util 0.12.1",
-]
-
-[[package]]
-name = "kvm-ioctls"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9002dff009755414f22b962ec6ae6980b07d6d8b06e5297b1062019d72bd6a8c"
-dependencies = [
- "bitflags 2.4.2",
- "kvm-bindings",
- "libc",
- "vmm-sys-util 0.12.1",
 ]
 
 [[package]]
@@ -4723,9 +4708,9 @@ checksum = "adad44e29e4c806119491a7f06f03de4d1af22c3a680dd47f1e6e179439d1f56"
 
 [[package]]
 name = "reqwest"
-version = "0.11.24"
+version = "0.11.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6920094eb85afde5e4a138be3f2de8bbdf28000f0029e72c45025a56b042251"
+checksum = "dd67538700a17451e7cba03ac727fb961abb7607553461627b97de0b89cf4a62"
 dependencies = [
  "base64 0.21.7",
  "bytes",
@@ -5178,6 +5163,7 @@ dependencies = [
 name = "secret"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "assert-json-diff",
  "assert_cmd",
  "async-trait",
@@ -5339,9 +5325,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.114"
+version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5f09b1bd632ef549eaa9f60a1f8de742bdbc698e6cee2095fc84dde5f549ae0"
+checksum = "3e17db7126d17feb94eb3fad46bf1a96b034e8aacbc2e775fe81505f8b0b2813"
 dependencies = [
  "indexmap 2.2.3",
  "itoa",
@@ -5480,18 +5466,21 @@ dependencies = [
 
 [[package]]
 name = "sev"
-version = "1.2.1"
+version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fd749a01c88a51ac718b59fe571177b31e478dfe059267977042477a0531224"
+checksum = "b2890179f8ef689340f441ba05f0b268bc14f672ae4b36d629cc2266d0d747ab"
 dependencies = [
+ "base64 0.21.7",
  "bincode",
  "bitfield 0.13.2",
  "bitflags 1.3.2",
+ "byteorder",
  "codicon",
  "dirs",
  "hex",
  "iocuddle",
- "kvm-ioctls",
+ "lazy_static",
+ "libc",
  "openssl",
  "serde",
  "serde-big-array",
@@ -5762,6 +5751,7 @@ dependencies = [
  "async-trait",
  "base64 0.21.7",
  "log",
+ "rand 0.8.5",
  "rstest",
  "secret",
  "serde",
@@ -5803,7 +5793,7 @@ version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
 dependencies = [
- "strum_macros",
+ "strum_macros 0.25.3",
 ]
 
 [[package]]
@@ -5811,6 +5801,19 @@ name = "strum_macros"
 version = "0.25.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
+dependencies = [
+ "heck 0.4.1",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.50",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.26.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6cf59daf282c0a494ba14fd21610a0325f9f90ec9d1231dea26bcb1d696c946"
 dependencies = [
  "heck 0.4.1",
  "proc-macro2",
@@ -6674,16 +6677,6 @@ name = "vmm-sys-util"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48b7b084231214f7427041e4220d77dfe726897a6d41fddee450696e66ff2a29"
-dependencies = [
- "bitflags 1.3.2",
- "libc",
-]
-
-[[package]]
-name = "vmm-sys-util"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d1435039746e20da4f8d507a72ee1b916f7b4b05af7a91c093d2c6561934ede"
 dependencies = [
  "bitflags 1.3.2",
  "libc",

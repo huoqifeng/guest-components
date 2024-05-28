@@ -23,7 +23,7 @@ pub fn detect_platform() -> bool {
 #[derive(Serialize, Deserialize)]
 struct SnpEvidence {
     attestation_report: AttestationReport,
-    cert_chain: Vec<CertTableEntry>,
+    cert_chain: Option<Vec<CertTableEntry>>,
 }
 
 #[derive(Debug, Default)]
