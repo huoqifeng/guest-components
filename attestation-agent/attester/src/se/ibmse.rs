@@ -54,7 +54,7 @@ impl SeAttestationRequest {
         Ok(serde_json::from_slice(request).unwrap())
     }
 
-    pub fn from_str(request: &str) -> Result<Self> {
+    pub fn from_string(request: &str) -> Result<Self> {
         Ok(serde_json::from_str(request).unwrap())
     }
 
@@ -121,7 +121,7 @@ pub fn calc_userdata() -> Result<UserData> {
 pub fn perform(req: &[u8], userdata: &UserData) -> Result<SeAttestationResponse> {
     // req is serialized SeAttestationRequest String bytes
     let req_str = std::str::from_utf8(req)?;
-    let request = SeAttestationRequest::from_str(&req_str)?;
+    let request = SeAttestationRequest::from_string(req_str)?;
     let user_data = serde_json::to_vec(userdata)?;
     let mut uvc: AttestationCmd = request.to_uvc(&user_data)?;
     let uv = UvDevice::open()?;
