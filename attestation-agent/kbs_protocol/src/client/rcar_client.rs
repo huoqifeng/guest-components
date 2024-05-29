@@ -190,12 +190,11 @@ impl KbsClient<Box<dyn EvidenceProvider>> {
         let mut hasher = Sha384::new();
         hasher.update(runtime_data);
 
-        let mut ehd = hasher.finalize().to_vec();
-        // IBM SE uses challenge_extra_params as runtime_data to pass attestation_request
-        if tee == Tee::Se {
-            // challenge_extra_params is serialized SeAttestationRequest String
-            ehd = challenge_extra_params.into_bytes();
-        }
+        let ehd = match tee {
+            // IBM SE uses challenge_extra_params as runtime_data to pass attestation_request
+            Tee::Se => challenge_extra_params.into_bytes(),
+            _ => hasher.finalize().to_vec(),
+        };
 
         let tee_evidence = self
             .provider

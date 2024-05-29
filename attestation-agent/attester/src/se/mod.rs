@@ -5,7 +5,6 @@
 
 use super::Attester;
 use anyhow::*;
-use log::debug;
 
 pub mod ibmse;
 
@@ -19,12 +18,8 @@ pub struct SeAttester {}
 #[async_trait::async_trait]
 impl Attester for SeAttester {
     async fn get_evidence(&self, attestation_request: Vec<u8>) -> Result<String> {
-        let userdata = ibmse::calc_userdata()?;
-        debug!("userdata json: {:#?}", &userdata.clone());
         // attestation_request is serialized SeAttestationRequest String bytes
-        let evidence = ibmse::perform(&attestation_request, &userdata)?;
-        debug!("response json: {:#?}", evidence.clone());
-        serde_json::to_string(&evidence).context("Serialize SE evidence failed")
+        ibmse::perform(&attestation_request)
     }
 }
 
